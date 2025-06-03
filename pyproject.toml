@@ -1,17 +1,19 @@
-[tool.poetry]
+[project]
 name = "ultracivic-backend"
 version = "0.1.0"
 description = "Ultra Civic backend API"
-authors = ["Francisco del Villar <delvillarfr@gmail.com>"]
-license = "MIT"
+authors = [
+    {name = "Francisco del Villar",email = "delvillarfr@gmail.com"}
+]
+license = {text = "MIT"}
 readme = "README.md"
-packages = [{include = "ultracivic_backend"}]
+requires-python = ">=3.11,<3.13"
+dependencies = [
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.13"
 
 [build-system]
-requires = ["poetry-core>=2.0.0"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
