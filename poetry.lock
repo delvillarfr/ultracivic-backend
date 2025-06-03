@@ -633,6 +633,39 @@ redis = ["redis (>=4.3.3,<6.0.0)"]
 sqlalchemy = ["fastapi-users-db-sqlalchemy (>=7.0.0)"]
 
 [[package]]
+name = "fastapi-users-db-sqlalchemy"
+version = "7.0.0"
+description = "FastAPI Users database adapter for SQLAlchemy"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "fastapi_users_db_sqlalchemy-7.0.0-py3-none-any.whl", hash = "sha256:5fceac018e7cfa69efc70834dd3035b3de7988eb4274154a0dbe8b14f5aa001e"},
+    {file = "fastapi_users_db_sqlalchemy-7.0.0.tar.gz", hash = "sha256:6823eeedf8a92f819276a2b2210ef1dcfd71fe8b6e37f7b4da8d1c60e3dfd595"},
+]
+
+[package.dependencies]
+fastapi-users = ">=10.0.0"
+sqlalchemy = {version = ">=2.0.0,<2.1.0", extras = ["asyncio"]}
+
+[[package]]
+name = "fastapi-users-db-sqlmodel"
+version = "0.3.0"
+description = "FastAPI Users database adapter for SQLModel"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "fastapi_users_db_sqlmodel-0.3.0-py3-none-any.whl", hash = "sha256:917a51a813b45d25347a23244e2d873b489e67b7d28a770ef4fa27369b9544f3"},
+    {file = "fastapi_users_db_sqlmodel-0.3.0.tar.gz", hash = "sha256:696508a65b1577897fbf839ba2b5ab3ead2e2df2d6beccda104b52580b9475c9"},
+]
+
+[package.dependencies]
+fastapi-users = ">=10.0.2"
+greenlet = "*"
+sqlmodel = "*"
+
+[[package]]
 name = "filelock"
 version = "3.18.0"
 description = "A platform independent file lock."
@@ -656,7 +689,6 @@ description = "Lightweight in-process concurrent programming"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "platform_machine == \"aarch64\" or platform_machine == \"ppc64le\" or platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"win32\" or platform_machine == \"WIN32\""
 files = [
     {file = "greenlet-3.2.2-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:c49e9f7c6f625507ed83a7485366b46cbe325717c60837f7244fc99ba16ba9d6"},
     {file = "greenlet-3.2.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c3cc1a3ed00ecfea8932477f729a9f616ad7347a5e55d50929efa50a86cb7be7"},
@@ -1595,7 +1627,7 @@ files = [
 ]
 
 [package.dependencies]
-greenlet = {version = ">=1", markers = "python_version < \"3.14\" and (platform_machine == \"aarch64\" or platform_machine == \"ppc64le\" or platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"win32\" or platform_machine == \"WIN32\")"}
+greenlet = {version = ">=1", optional = true, markers = "python_version < \"3.14\" and (platform_machine == \"aarch64\" or platform_machine == \"ppc64le\" or platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"win32\" or platform_machine == \"WIN32\") or extra == \"asyncio\""}
 typing-extensions = ">=4.6.0"
 
 [package.extras]
@@ -1984,4 +2016,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "b1b386af313b6d5a878f1570e45dca459966ce517682eb65522beae3912ecb91"
+content-hash = "c0b311c5a0d14650e102605197cab681bd923861483e18c74e24457942b597f7"

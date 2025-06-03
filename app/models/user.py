@@ -1,14 +1,52 @@
-# app/models/user.py
-from uuid import UUID, uuid4
+"""
+User table & Pydantic schemas for Ultra Civic
+Compatible with FastAPI-Users ≥14 and fastapi-users-db-sqlalchemy ≥1.3
+"""
 
-from sqlmodel import SQLModel, Field, Column, String
+from __future__ import annotations
 
-class User(SQLModel, table=True):  # type: ignore[call-arg]
-    id: UUID | None = Field(default_factory=uuid4, primary_key=True)
-    email: str = Field(index=True, sa_column_kwargs={"unique": True})
-    hashed_password: str
-    is_active: bool = True
-    kyc_status: str = Field(
+from typing import Optional
+from uuid import UUID
+
+from fastapi_users import schemas as fus
+from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String
+
+
+# ────────────────────────────────────────────────────────────
+# SQLAlchemy base class
+# ────────────────────────────────────────────────────────────
+class Base(DeclarativeBase):  # Alembic will target Base.metadata
+    pass
+
+
+# ────────────────────────────────────────────────────────────
+# Database table
+# ────────────────────────────────────────────────────────────
+class User(SQLAlchemyBaseUserTableUUID, Base):  # inherits id/email/hashed_pw/flags
+    __tablename__ = "user"
+
+    kyc_status: Mapped[str] = mapped_column(
+        String(20),
         default="unverified",
-        sa_column=Column(String(20)),
+        server_default="unverified",
+        comment="Stripe KYC status",
     )
+
+
+# ────────────────────────────────────────────────────────────
+# Pydantic schemas consumed by FastAPI-Users routers
+# ────────────────────────────────────────────────────────────
+class UserRead(fus.BaseUser[UUID]):
+    kyc_status: str
+
+
+class UserCreate(fus.BaseUserCreate):
+    """Payload for /auth/register; nothing extra needed."""
+    pass
+
+
+class UserUpdate(fus.BaseUserUpdate):
+    """Patchable fields for /me route (optional)."""
+    kyc_status: Optional[str] = None
