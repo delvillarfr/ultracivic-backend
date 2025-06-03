@@ -5,25 +5,35 @@ on:
     branches: [main, dev, feature/**]
   pull_request:
 
+env:                       # keep virtual-envs inside the repo for caching
+  POETRY_VIRTUALENVS_IN_PROJECT: "true"
+
 jobs:
   test:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        python-version: ['3.11', '3.12']
-    steps:
-      - uses: actions/checkout@v4
+        python-version: ['3.11', '3.12']   # adjust if you only use one version
 
-      # Set up Python and cache Poetry’s virtual-env between runs
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'poetry'
+          cache: poetry                # enable built-in Poetry cache
 
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install --no-interaction --no-root
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          poetry-version: 1.8.2        # pin a specific Poetry version
+          virtualenvs-in-project: true # mirrors your local `poetry config`
 
-      - name: Run lint & type checks
+      - name: Install project dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Run Ruff & MyPy via pre-commit
         run: poetry run pre-commit run --all-files
