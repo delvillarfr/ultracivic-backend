@@ -5,7 +5,7 @@ on:
     branches: [main, dev, feature/**]
   pull_request:
 
-env:                       # keep virtual-envs inside the repo for caching
+env:
   POETRY_VIRTUALENVS_IN_PROJECT: "true"
 
 jobs:
@@ -14,26 +14,39 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.11', '3.12']   # adjust if you only use one version
+        python-version: ['3.11', '3.12']
 
     steps:
-      - name: Checkout code
+      # 1. Check out code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      # 2. Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: poetry                # enable built-in Poetry cache
 
+      # 3. Install Poetry — robust version
       - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          poetry-version: 1.8.2        # pin a specific Poetry version
-          virtualenvs-in-project: true # mirrors your local `poetry config`
+        id: install-poetry
+        run: |
+          # If Poetry already on PATH (e.g. cached), skip
+          if command -v poetry >/dev/null 2>&1; then
+            echo "Poetry already installed"; exit 0
+          fi
+          # Otherwise install the official way
+          curl -sSL https://install.python-poetry.org | python -
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Install project dependencies
+      # 4. Show Poetry version to confirm it was added
+      - name: Check Poetry
+        run: poetry --version
+
+      # 5. Install dependencies from lock / pyproject
+      - name: Install project deps
         run: poetry install --no-interaction --no-root
 
-      - name: Run Ruff & MyPy via pre-commit
+      # 6. Run Ruff + MyPy pre-commit hooks
+      - name: Lint & type-check
         run: poetry run pre-commit run --all-files
