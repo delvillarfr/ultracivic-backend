@@ -1,0 +1,24 @@
+[project]
+name = "ultracivic-backend"
+version = "0.1.0"
+description = "Ultra Civic backend API"
+authors = [
+    {name = "Francisco del Villar",email = "delvillarfr@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.12"
+mypy = "^1.16.0"
+pre-commit = "^4.2.0"
+pytest = "^8.4.0"
+
