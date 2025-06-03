@@ -3,8 +3,11 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    # DB
-    database_url: str  # Postgres DSN
+    # Async URL for FastAPI
+    database_url: str
+
+    # Sync URL for Alembic
+    database_url_sync: str
 
     # Auth / JWT
     jwt_secret: str
