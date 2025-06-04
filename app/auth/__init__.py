@@ -52,6 +52,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
         # In production send email; for dev just print
         print(f"[DEV] reset-token for {user.email}: {token}")
 
+    async def on_after_request_verify(
+        self, user: User, token: str, request: Request | None = None
+    ) -> None:
+        """Print verification tokens for local testing."""
+        print(f"[DEV] Verification token for {user.email}: {token}")
+
 async def get_user_manager(
     user_db=Depends(get_user_db),
 ) -> AsyncGenerator[UserManager, None]:

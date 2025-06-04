@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from uuid import UUID
+import logging
 import stripe
 
 from app.core.config import get_settings
@@ -8,6 +9,7 @@ from app.models.user import User
 from app.db import get_session
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 settings = get_settings()
 stripe.api_key = settings.stripe_secret     # 🔑
 
@@ -48,6 +50,7 @@ async def stripe_webhook(request: Request):
                 user.kyc_status = "verified"
                 db.add(user)
                 await db.commit()
+                logger.info("user %s marked verified", user.id)
 
     return {"received": True}
 
