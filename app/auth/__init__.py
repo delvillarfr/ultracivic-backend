@@ -87,6 +87,14 @@ fastapi_users = FastAPIUsers[User, UUID](
 # Convenience dependency for protected routes
 current_active_user = fastapi_users.current_user(active=True)
 
+# Dependency for verified users only
+async def current_verified_user(user: User = Depends(current_active_user)) -> User:
+    """Dependency that ensures the user is both active and KYC verified."""
+    if user.kyc_status != "verified":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="KYC verification required")
+    return user
+
 # Optional: dev-only callback to print reset-tokens
 async def on_after_forgot_password(user: User, token: str, request: Request | None = None):
     print(f"[DEV] Reset token for {user.email}: {token}")
