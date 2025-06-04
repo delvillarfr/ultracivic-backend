@@ -3,6 +3,7 @@ from fastapi import FastAPI, Depends
 from app.core.config import get_settings
 from app.auth import fastapi_users, auth_backend, current_active_user
 from app.models.user import UserRead, UserCreate
+from app.kyc import router as kyc_router
 
 settings = get_settings()
 app = FastAPI(title="Ultra Civic Backend")
@@ -38,6 +39,9 @@ app.include_router(
     prefix="/auth",
     tags=["auth"],
 )
+
+# Include KYC routes
+app.include_router(kyc_router, tags=["kyc"])
 
 
 # ─────────────────────────────────────────────────────────────
