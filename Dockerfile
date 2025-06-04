@@ -22,8 +22,8 @@ ENV POETRY_NO_INTERACTION=1 \
 # Copy poetry files
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies
-RUN poetry install --only=main && rm -rf $POETRY_CACHE_DIR
+# Install dependencies (--no-root to avoid installing the current project)
+RUN poetry install --only=main --no-root && rm -rf $POETRY_CACHE_DIR
 
 # Copy application code
 COPY . .
