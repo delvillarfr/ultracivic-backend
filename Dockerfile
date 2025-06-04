@@ -19,17 +19,11 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_VENV_IN_PROJECT=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# Copy poetry files first for dependency installation
-COPY pyproject.toml poetry.lock* ./
-
-# Install dependencies only (no root project)
-RUN poetry install --only=main --no-root && rm -rf $POETRY_CACHE_DIR
-
 # Copy application code 
 COPY . .
 
-# Install the project itself (now that source code is available)
-RUN poetry install --only-root
+# Install dependencies and project
+RUN poetry install --only=main && rm -rf $POETRY_CACHE_DIR
 
 # Expose port
 EXPOSE 8000

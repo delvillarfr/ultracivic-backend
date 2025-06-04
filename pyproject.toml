@@ -29,6 +29,13 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry]
+name = "ultracivic-backend"
+version = "0.1.0"
+description = "Ultra Civic backend API"
+authors = ["Francisco del Villar <delvillarfr@gmail.com>"]
+packages = [{include = "app"}]
+
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.12"
 mypy = "^1.16.0"
