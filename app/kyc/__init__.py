@@ -42,7 +42,7 @@ async def stripe_webhook(request: Request):
         session = event["data"]["object"]
         user_id = UUID(session["client_reference_id"])
 
-        async with get_session() as db:
+        async for db in get_session():
             user = await db.get(User, user_id)
             if user:
                 user.kyc_status = "verified"
