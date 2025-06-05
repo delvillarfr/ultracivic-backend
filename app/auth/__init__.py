@@ -30,7 +30,7 @@ from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
 from app.core.config import get_settings
 from app.db import get_session
-from app.models.user import User
+from app.models.user import User, KYCStatus
 
 settings = get_settings()
 
@@ -49,9 +49,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
     async def validate_password(
         self, password: str, user
     ) -> None:
-        """Enforce minimum password security requirements."""
-        if len(password) < 5:
-            raise InvalidPasswordException(reason="Password too short")
+        """Enforce password security requirements: 8+ chars, 1+ digit."""
+        if len(password) < 8:
+            raise InvalidPasswordException(
+                reason="Password must be at least 8 characters long"
+            )
+        
+        if not any(char.isdigit() for char in password):
+            raise InvalidPasswordException(
+                reason="Password must contain at least one digit"
+            )
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None
@@ -77,10 +84,10 @@ bearer_transport = BearerTransport(tokenUrl="/auth/jwt/login")
 
 
 def get_jwt_strategy() -> JWTStrategy:
-    """Configure JWT strategy with 24-hour token lifetime."""
+    """Configure JWT strategy with 1-hour access token lifetime."""
     return JWTStrategy(
         secret=settings.jwt_secret,
-        lifetime_seconds=int(timedelta(days=1).total_seconds()),
+        lifetime_seconds=int(timedelta(hours=1).total_seconds()),
     )
 
 
@@ -99,7 +106,27 @@ current_active_user = fastapi_users.current_user(active=True)
 
 
 async def current_verified_user(user: User = Depends(current_active_user)) -> User:
-    """Dependency ensuring user is both active and KYC verified."""
-    if user.kyc_status != "verified":
-        raise HTTPException(status_code=403, detail="KYC verification required")
+    """
+    Dependency ensuring user is both active and KYC verified.
+    
+    Returns the user if KYC verified, otherwise raises 403 with clear guidance.
+    This creates a security gate for sensitive operations.
+    """
+    if user.kyc_status != KYCStatus.VERIFIED:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "KYC verification required",
+                "message": "This operation requires identity verification",
+                "kyc_status": user.kyc_status.value,
+                "action": "Complete KYC verification to access this resource"
+            }
+        )
     return user
+
+
+async def refresh_jwt_token(user: User = Depends(current_active_user)) -> dict:
+    """Generate a new JWT token for an authenticated user."""
+    strategy = get_jwt_strategy()
+    token = await strategy.write_token(user)
+    return {"access_token": token, "token_type": "bearer"}

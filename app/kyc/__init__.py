@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from app.auth import current_active_user, current_verified_user
 from app.core.config import get_settings
 from app.db import get_session
-from app.models.user import User
+from app.models.user import User, KYCStatus
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -73,11 +73,11 @@ async def stripe_webhook(request: Request, db=Depends(get_session)):
 
         user_id_str = str(user.id)
 
-        if user.kyc_status == "verified":
+        if user.kyc_status == KYCStatus.VERIFIED:
             logger.info("User %s already verified, skipping update", user_id_str)
             return {"received": True, "status": "already_verified"}
 
-        user.kyc_status = "verified"
+        user.kyc_status = KYCStatus.VERIFIED
         db.add(user)
         await db.commit()
         logger.info("User %s marked as verified", user_id_str)

@@ -11,13 +11,22 @@ The design separates database concerns (User table) from API concerns
 """
 
 from __future__ import annotations
+import enum
 from typing import Optional
 from uuid import UUID
 
 from fastapi_users import schemas as fus
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import String
+from sqlalchemy import Enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class KYCStatus(str, enum.Enum):
+    """Valid KYC verification status values for Stripe Identity."""
+    UNVERIFIED = "unverified"
+    PENDING = "pending"
+    VERIFIED = "verified"
+    FAILED = "failed"
 
 
 class Base(DeclarativeBase):
@@ -30,17 +39,18 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     
     __tablename__ = "user"
 
-    kyc_status: Mapped[str] = mapped_column(
-        String(20),
-        default="unverified",
+    kyc_status: Mapped[KYCStatus] = mapped_column(
+        Enum(KYCStatus, name="kyc_status_enum"),
+        default=KYCStatus.UNVERIFIED,
         server_default="unverified",
-        comment="Stripe KYC status",
+        nullable=False,
+        comment="Stripe KYC verification status",
     )
 
 
 class UserRead(fus.BaseUser[UUID]):
     """User data schema for API responses."""
-    kyc_status: str
+    kyc_status: KYCStatus
 
 
 class UserCreate(fus.BaseUserCreate):
@@ -50,4 +60,4 @@ class UserCreate(fus.BaseUserCreate):
 
 class UserUpdate(fus.BaseUserUpdate):
     """User update schema for PATCH operations."""
-    kyc_status: Optional[str] = None
+    kyc_status: Optional[KYCStatus] = None
