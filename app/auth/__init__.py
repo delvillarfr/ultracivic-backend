@@ -1,13 +1,20 @@
 """
-Authentication wiring for Ultra Civic
-FastAPI-Users v14 + fastapi-users-db-sqlalchemy ≥1.3
+Authentication System Configuration
+
+This module assembles the complete authentication system for Ultra Civic using
+FastAPI-Users v14. It provides JWT-based authentication with user registration,
+login, password reset, and email verification capabilities.
+
+The system integrates with the User model and enforces KYC verification
+requirements for accessing protected resources. All tokens and password
+operations use secure industry-standard practices.
 """
 
 from datetime import timedelta
 from typing import AsyncGenerator
 from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, HTTPException
 from fastapi_users import (
     FastAPIUsers,
     BaseUserManager,
@@ -19,58 +26,63 @@ from fastapi_users.authentication import (
     BearerTransport,
     JWTStrategy,
 )
-from fastapi_users.password import PasswordHelper
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
 from app.core.config import get_settings
 from app.db import get_session
 from app.models.user import User
 
-# ─── Settings & helpers ─────────────────────────────────────────────────
 settings = get_settings()
-pwd_helper = PasswordHelper()
 
-# ─── Database adapter ──────────────────────────────────────────────────
+
 async def get_user_db(session=Depends(get_session)) -> AsyncGenerator:
+    """Provide database adapter for user operations."""
     yield SQLAlchemyUserDatabase(session, User)
 
-# ─── User manager ──────────────────────────────────────────────────────
+
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
+    """Manage user lifecycle events and password validation."""
+    
     reset_password_token_secret = settings.jwt_secret
     verification_token_secret = settings.jwt_secret
 
     async def validate_password(
-        self, password: str, user: User | None = None
+        self, password: str, user
     ) -> None:
+        """Enforce minimum password security requirements."""
         if len(password) < 5:
             raise InvalidPasswordException(reason="Password too short")
 
-    # ← NEW: password-reset hook lives inside the manager
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None
-    ) -> None:  # noqa: D401
-        # In production send email; for dev just print
+    ) -> None:
+        """Handle password reset token generation (dev mode prints to console)."""
         print(f"[DEV] reset-token for {user.email}: {token}")
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None
     ) -> None:
-        """Print verification tokens for local testing."""
+        """Handle verification token generation (dev mode prints to console)."""
         print(f"[DEV] Verification token for {user.email}: {token}")
+
 
 async def get_user_manager(
     user_db=Depends(get_user_db),
 ) -> AsyncGenerator[UserManager, None]:
+    """Provide user manager instance for dependency injection."""
     yield UserManager(user_db)
 
-# ─── JWT backend ───────────────────────────────────────────────────────
+
 bearer_transport = BearerTransport(tokenUrl="/auth/jwt/login")
 
+
 def get_jwt_strategy() -> JWTStrategy:
+    """Configure JWT strategy with 24-hour token lifetime."""
     return JWTStrategy(
         secret=settings.jwt_secret,
         lifetime_seconds=int(timedelta(days=1).total_seconds()),
     )
+
 
 auth_backend = AuthenticationBackend(
     name="jwt",
@@ -78,23 +90,16 @@ auth_backend = AuthenticationBackend(
     get_strategy=get_jwt_strategy,
 )
 
-# ─── FastAPI-Users instance ────────────────────────────────────────────
 fastapi_users = FastAPIUsers[User, UUID](
-    get_user_manager,      # ← user-manager factory
-    [auth_backend],        # ← list of auth backends
+    get_user_manager,
+    [auth_backend],
 )
 
-# Convenience dependency for protected routes
 current_active_user = fastapi_users.current_user(active=True)
 
-# Dependency for verified users only
+
 async def current_verified_user(user: User = Depends(current_active_user)) -> User:
-    """Dependency that ensures the user is both active and KYC verified."""
+    """Dependency ensuring user is both active and KYC verified."""
     if user.kyc_status != "verified":
-        from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="KYC verification required")
     return user
-
-# Optional: dev-only callback to print reset-tokens
-async def on_after_forgot_password(user: User, token: str, request: Request | None = None):
-    print(f"[DEV] Reset token for {user.email}: {token}")

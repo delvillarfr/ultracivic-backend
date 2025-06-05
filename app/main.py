@@ -1,4 +1,15 @@
-# app/main.py
+"""
+Ultra Civic Backend - Main Application Entry Point
+
+This module serves as the central configuration point for the Ultra Civic API.
+It assembles authentication, KYC verification, and health monitoring endpoints
+into a cohesive FastAPI application using the dependency injection pattern.
+
+The application follows a modular architecture where authentication is handled
+by FastAPI-Users v14, KYC verification integrates with Stripe Identity, and
+all database operations use async SQLAlchemy with PostgreSQL.
+"""
+
 from fastapi import FastAPI, Depends
 from app.core.config import get_settings
 from app.auth import fastapi_users, auth_backend, current_active_user
@@ -8,52 +19,41 @@ from app.kyc import router as kyc_router
 settings = get_settings()
 app = FastAPI(title="Ultra Civic Backend")
 
-# ─────────────────────────────────────────────────────────────
-# Meta / health
-# ─────────────────────────────────────────────────────────────
+
 @app.get("/health", tags=["meta"])
 def health_check():
+    """Simple health check endpoint returning application status."""
     return {"status": "ok"}
 
 
-# ─────────────────────────────────────────────────────────────
-# Auth routers (FastAPI-Users v14)
-# ─────────────────────────────────────────────────────────────
-# 1) Register  → needs UserRead (response) and UserCreate (request)
 app.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="/auth",
     tags=["auth"],
 )
 
-# Verification routes (prints token in console)
 app.include_router(
     fastapi_users.get_verify_router(UserRead),
     prefix="/auth",
     tags=["auth"],
 )
 
-# 2) JWT login/logout → needs backend + response schema
 app.include_router(
-    fastapi_users.get_auth_router(auth_backend, UserRead),
+    fastapi_users.get_auth_router(auth_backend),
     prefix="/auth/jwt",
     tags=["auth"],
 )
 
-# 3) Forgot-/reset-password → no schema args needed in v14
 app.include_router(
     fastapi_users.get_reset_password_router(),
     prefix="/auth",
     tags=["auth"],
 )
 
-# Include KYC routes
 app.include_router(kyc_router, tags=["kyc"])
 
 
-# ─────────────────────────────────────────────────────────────
-# Example protected endpoint
-# ─────────────────────────────────────────────────────────────
 @app.get("/me", response_model=UserRead, tags=["auth"])
 async def read_me(user: UserRead = Depends(current_active_user)):
+    """Return the currently authenticated user's profile information."""
     return user

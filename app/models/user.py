@@ -1,30 +1,33 @@
 """
-User table & Pydantic schemas for Ultra Civic
-Compatible with FastAPI-Users ≥14 and fastapi-users-db-sqlalchemy ≥1.3
+User Data Models and Database Schema
+
+This module defines the complete user data model for Ultra Civic, including
+the SQLAlchemy table definition and Pydantic schemas for API serialization.
+It integrates with FastAPI-Users for authentication while extending the base
+user model with KYC verification status tracking.
+
+The design separates database concerns (User table) from API concerns
+(UserRead, UserCreate, UserUpdate schemas) following clean architecture principles.
 """
 
 from __future__ import annotations
-
 from typing import Optional
 from uuid import UUID
 
 from fastapi_users import schemas as fus
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-# ────────────────────────────────────────────────────────────
-# SQLAlchemy base class
-# ────────────────────────────────────────────────────────────
-class Base(DeclarativeBase):  # Alembic will target Base.metadata
+class Base(DeclarativeBase):
+    """SQLAlchemy declarative base for all database models."""
     pass
 
 
-# ────────────────────────────────────────────────────────────
-# Database table
-# ────────────────────────────────────────────────────────────
-class User(SQLAlchemyBaseUserTableUUID, Base):  # inherits id/email/hashed_pw/flags
+class User(SQLAlchemyBaseUserTableUUID, Base):
+    """User table extending FastAPI-Users base with KYC verification status."""
+    
     __tablename__ = "user"
 
     kyc_status: Mapped[str] = mapped_column(
@@ -35,18 +38,16 @@ class User(SQLAlchemyBaseUserTableUUID, Base):  # inherits id/email/hashed_pw/fl
     )
 
 
-# ────────────────────────────────────────────────────────────
-# Pydantic schemas consumed by FastAPI-Users routers
-# ────────────────────────────────────────────────────────────
 class UserRead(fus.BaseUser[UUID]):
+    """User data schema for API responses."""
     kyc_status: str
 
 
 class UserCreate(fus.BaseUserCreate):
-    """Payload for /auth/register; nothing extra needed."""
+    """User registration schema for API requests."""
     pass
 
 
 class UserUpdate(fus.BaseUserUpdate):
-    """Patchable fields for /me route (optional)."""
+    """User update schema for PATCH operations."""
     kyc_status: Optional[str] = None

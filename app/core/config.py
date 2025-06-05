@@ -1,25 +1,33 @@
-# app/core/config.py
+"""
+Application Configuration Management
+
+This module centralizes all configuration settings for the Ultra Civic backend.
+It uses Pydantic Settings to automatically load environment variables from
+.env files and validate their types, ensuring configuration consistency
+across development, testing, and production environments.
+
+The settings are cached using lru_cache to avoid repeated environment
+variable parsing during application runtime.
+"""
+
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
-    # Async URL for FastAPI
+    """Application settings loaded from environment variables."""
+    
     database_url: str
-
-    # Sync URL for Alembic
     database_url_sync: str
-
-    # Auth / JWT
     jwt_secret: str
-
-    # Stripe
     stripe_secret: str
     stripe_webhook_secret: str
 
-    # ↓ new way to declare .env support in Pydantic v2
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-@lru_cache
+
+@lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    """Return cached application settings instance."""
+    return Settings()  # type: ignore[call-arg]
 

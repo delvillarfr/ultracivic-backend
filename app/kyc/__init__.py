@@ -1,35 +1,46 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from uuid import UUID
-import logging
-import stripe
+"""
+Know Your Customer (KYC) Verification System
 
-from app.core.config import get_settings
+This module implements identity verification using Stripe Identity, allowing
+users to upload government-issued identification documents for verification.
+The system handles the complete verification workflow from initiation through
+webhook processing to status updates.
+
+The implementation follows security best practices for webhook validation
+and provides idempotent operations to handle duplicate webhook events gracefully.
+"""
+
+import logging
+from uuid import UUID
+
+import stripe
+from fastapi import APIRouter, Depends, HTTPException, Request
+
 from app.auth import current_active_user, current_verified_user
-from app.models.user import User
+from app.core.config import get_settings
 from app.db import get_session
+from app.models.user import User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 settings = get_settings()
-stripe.api_key = settings.stripe_secret     # 🔑
+stripe.api_key = settings.stripe_secret
 
-# ---------- 1. kick-off verification ----------------------------------
+
 @router.post("/kyc/start")
 async def start_kyc(user: User = Depends(current_active_user)):
-    """
-    Return a one-time redirect URL where the logged-in user
-    completes Stripe’s ID flow.
-    """
+    """Create Stripe Identity verification session for authenticated user."""
     session = stripe.identity.VerificationSession.create(
         type="document",
-        client_reference_id=str(user.id),      # we’ll get this back in the webhook
+        client_reference_id=str(user.id),
         metadata={"email": user.email},
     )
     return {"url": session.url}
 
-# ---------- 2. receive webhook when verification succeeds -------------
+
 @router.post("/stripe/webhook")
-async def stripe_webhook(request: Request, db = Depends(get_session)):
+async def stripe_webhook(request: Request, db=Depends(get_session)):
+    """Process Stripe webhook events for identity verification completion."""
     payload = await request.body()
     sig = request.headers.get("stripe-signature", "")
 
@@ -37,7 +48,7 @@ async def stripe_webhook(request: Request, db = Depends(get_session)):
         event = stripe.Webhook.construct_event(
             payload, sig, settings.stripe_webhook_secret
         )
-    except stripe.error.SignatureVerificationError:
+    except stripe.SignatureVerificationError:
         logger.error("Invalid Stripe webhook signature")
         raise HTTPException(status_code=400, detail="invalid signature")
     except Exception as e:
@@ -60,10 +71,8 @@ async def stripe_webhook(request: Request, db = Depends(get_session)):
             logger.warning("User not found for ID: %s", user_id)
             return {"received": True, "error": "user not found"}
 
-        # Store user.id before any async operations to avoid lazy loading issues
         user_id_str = str(user.id)
 
-        # Idempotency check - if already verified, don't update
         if user.kyc_status == "verified":
             logger.info("User %s already verified, skipping update", user_id_str)
             return {"received": True, "status": "already_verified"}
@@ -77,17 +86,13 @@ async def stripe_webhook(request: Request, db = Depends(get_session)):
 
     return {"received": True}
 
-# ---------- 3. test endpoint for verified users only ---------------------
+
 @router.get("/kyc/verified-only")
 async def verified_only_endpoint(user: User = Depends(current_verified_user)):
-    """
-    Test endpoint that is only accessible to KYC-verified users.
-    Returns 403 if user is not verified.
-    """
+    """Test endpoint accessible only to KYC-verified users."""
     return {
         "message": "Success! You are a verified user.",
         "user_id": str(user.id),
         "email": user.email,
         "kyc_status": user.kyc_status
     }
-
