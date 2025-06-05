@@ -24,7 +24,7 @@ from app.models.user import User
 router = APIRouter()
 logger = logging.getLogger(__name__)
 settings = get_settings()
-stripe.api_key = settings.stripe_secret
+stripe.api_key = settings.stripe_secret.get_secret_value()
 
 
 @router.post("/kyc/start")
