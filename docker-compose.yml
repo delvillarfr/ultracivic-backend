@@ -36,5 +36,21 @@ services:
         poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "
 
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    environment:
+      STRIPE_API_KEY: ${STRIPE_SECRET}
+      STRIPE_DEVICE_NAME: ultracivic-dev
+    volumes:
+      - stripe_config:/root/.config/stripe
+    profiles:
+      - webhook-testing
+    command: >
+      sh -c "
+        stripe login --api-key $$STRIPE_API_KEY &&
+        stripe listen --forward-to http://app:8000/webhooks/stripe
+      "
+
 volumes:
   postgres_data:
+  stripe_config:

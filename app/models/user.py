@@ -46,11 +46,17 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         nullable=False,
         comment="Stripe KYC verification status",
     )
+    
+    stripe_verification_session_id: Mapped[Optional[str]] = mapped_column(
+        nullable=True,
+        comment="Stripe Identity verification session ID for audit trail",
+    )
 
 
 class UserRead(fus.BaseUser[UUID]):
     """User data schema for API responses."""
     kyc_status: KYCStatus
+    stripe_verification_session_id: Optional[str] = None
 
 
 class UserCreate(fus.BaseUserCreate):
@@ -61,3 +67,4 @@ class UserCreate(fus.BaseUserCreate):
 class UserUpdate(fus.BaseUserUpdate):
     """User update schema for PATCH operations."""
     kyc_status: Optional[KYCStatus] = None
+    stripe_verification_session_id: Optional[str] = None
