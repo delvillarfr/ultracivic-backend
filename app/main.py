@@ -11,6 +11,7 @@ all database operations use async SQLAlchemy with PostgreSQL.
 """
 
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.auth import fastapi_users, auth_backend, current_active_user, current_verified_user, refresh_jwt_token
 from app.models.user import User, UserRead, UserCreate
@@ -18,6 +19,19 @@ from app.kyc import router as kyc_router
 
 settings = get_settings()
 app = FastAPI(title="Ultra Civic Backend")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8080",  # Local development
+        "https://ultracivic.com",  # Production
+        "https://frontend-stub.ultracivic.pages.dev",  # Cloudflare Pages preview
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health", tags=["meta"])
