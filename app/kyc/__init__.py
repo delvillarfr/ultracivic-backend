@@ -9,6 +9,7 @@ The system ensures idempotent webhook processing and maintains audit trails
 through session ID tracking.
 """
 
+import json
 import logging
 import hmac
 import hashlib
@@ -63,7 +64,7 @@ async def start_kyc_verification(
         
         # Update user with session ID and set status to PENDING
         user.stripe_verification_session_id = session.id
-        user.kyc_status = KYCStatus.PENDING
+        user.kyc_status = KYCStatus.pending
         db.add(user)
         await db.commit()
         
@@ -155,7 +156,7 @@ async def handle_stripe_webhook(
     try:
         # Parse the webhook event
         event = stripe.Event.construct_from(
-            stripe.util.json.loads(payload.decode('utf-8')),
+            json.loads(payload.decode('utf-8')),
             stripe.api_key
         )
     except Exception as e:
@@ -201,26 +202,26 @@ async def handle_verification_session_event(
     # Check if this session was already processed (idempotency)
     if (user.stripe_verification_session_id == session_id and 
         event.type == "identity.verification_session.verified" and
-        user.kyc_status == KYCStatus.VERIFIED):
+        user.kyc_status == KYCStatus.verified):
         logger.info("Session %s already processed for user %s", session_id, user_id)
         return {"received": True, "status": "already_processed"}
     
     # Update user based on event type
     if event.type == "identity.verification_session.verified":
         logger.info("Verification successful for user %s, session %s", user_id, session_id)
-        user.kyc_status = KYCStatus.VERIFIED
+        user.kyc_status = KYCStatus.verified
         user.stripe_verification_session_id = session_id
         status = "verified"
         
     elif event.type == "identity.verification_session.requires_input":
         logger.info("Verification requires input for user %s, session %s", user_id, session_id)
-        user.kyc_status = KYCStatus.FAILED
+        user.kyc_status = KYCStatus.failed
         user.stripe_verification_session_id = session_id
         status = "requires_input"
         
     elif event.type == "identity.verification_session.canceled":
         logger.info("Verification canceled for user %s, session %s", user_id, session_id)
-        user.kyc_status = KYCStatus.UNVERIFIED
+        user.kyc_status = KYCStatus.unverified
         user.stripe_verification_session_id = session_id
         status = "canceled"
         
@@ -235,7 +236,7 @@ async def handle_verification_session_event(
     logger.info(
         "Updated user %s KYC status to %s for session %s", 
         user_id, 
-        user.kyc_status.value,
+        status,
         session_id
     )
     
@@ -243,7 +244,7 @@ async def handle_verification_session_event(
         "received": True,
         "status": status,
         "user_id": str(user_id),
-        "kyc_status": user.kyc_status.value
+        "kyc_status": status
     }
 
 

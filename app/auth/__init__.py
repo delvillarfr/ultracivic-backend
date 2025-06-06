@@ -112,7 +112,7 @@ async def current_verified_user(user: User = Depends(current_active_user)) -> Us
     Returns the user if KYC verified, otherwise raises 403 with clear guidance.
     This creates a security gate for sensitive operations.
     """
-    if user.kyc_status != KYCStatus.VERIFIED:
+    if user.kyc_status != KYCStatus.verified:
         raise HTTPException(
             status_code=403,
             detail={

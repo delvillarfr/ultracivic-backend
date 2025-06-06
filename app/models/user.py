@@ -23,10 +23,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class KYCStatus(str, enum.Enum):
     """Valid KYC verification status values for Stripe Identity."""
-    UNVERIFIED = "unverified"
-    PENDING = "pending"
-    VERIFIED = "verified"
-    FAILED = "failed"
+    unverified = "unverified"
+    pending = "pending"
+    verified = "verified"
+    failed = "failed"
 
 
 class Base(DeclarativeBase):
@@ -41,7 +41,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
 
     kyc_status: Mapped[KYCStatus] = mapped_column(
         Enum(KYCStatus, name="kyc_status_enum"),
-        default=KYCStatus.UNVERIFIED,
+        default=KYCStatus.unverified,
         server_default="unverified",
         nullable=False,
         comment="Stripe KYC verification status",
