@@ -24,7 +24,8 @@ app = FastAPI(title="Ultra Civic Backend")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:8080",  # Local development
+        "http://localhost:8080",  # Local development (frontend-stub)
+        "http://localhost:3000",  # Local development (main website)
         "https://ultracivic.com",  # Production
         "https://frontend-stub.ultracivic.pages.dev",  # Cloudflare Pages preview
     ],
