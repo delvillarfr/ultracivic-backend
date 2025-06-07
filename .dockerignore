@@ -1,6 +1,6 @@
 .git
 .gitignore
-Dockerfile
+Dockerfile.dev
 .dockerignore
 .env
 .env.*
