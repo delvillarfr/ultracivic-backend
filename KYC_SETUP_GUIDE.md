@@ -204,7 +204,8 @@ ENVIRONMENT=production
 ```
 
 ### Webhook Endpoint Configuration
-- Configure webhook endpoint: `https://your-domain.com/webhooks/stripe`
+- **Production**: Configure webhook endpoint: `https://ultracivic-backend.onrender.com/webhooks/stripe`
+- **Development**: Use Stripe CLI forwarding to `localhost:8000/webhooks/stripe`
 - Subscribe to events: `identity.verification_session.*`
 - Ensure webhook secret matches your environment
 

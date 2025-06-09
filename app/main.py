@@ -26,8 +26,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:8080",  # Local development (frontend-stub)
         "http://localhost:3000",  # Local development (main website)
-        "https://ultracivic.com",  # Production
+        "https://ultracivic.com",  # Production website
         "https://frontend-stub.ultracivic.pages.dev",  # Cloudflare Pages preview
+        "https://ultracivic-backend.onrender.com",  # Render backend (for API docs)
     ],
     allow_credentials=True,
     allow_methods=["*"],

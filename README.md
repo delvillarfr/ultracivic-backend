@@ -12,7 +12,7 @@ This project uses SQLAlchemy with an async driver. Ensure your `DATABASE_URL` in
    ```bash
    stripe listen \
      --events identity.verification_session.verified \
-     --forward-to localhost:8000/stripe/webhook
+     --forward-to localhost:8000/webhooks/stripe
    ```
 3. **Register and log in**
    ```bash
