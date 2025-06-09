@@ -1695,6 +1695,22 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
+name = "resend"
+version = "2.10.0"
+description = "Resend Python SDK"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "resend-2.10.0-py2.py3-none-any.whl", hash = "sha256:1d65a36b032522d5eb738e08956ca29cbaa217a270efbe915a071eb72c0d6956"},
+    {file = "resend-2.10.0.tar.gz", hash = "sha256:f9091f487f0d878095bb7a744549969c624815413b7ac82ba92039e2d0804b75"},
+]
+
+[package.dependencies]
+requests = ">=2.31.0"
+typing-extensions = ">=4.4.0"
+
+[[package]]
 name = "ruff"
 version = "0.11.12"
 description = "An extremely fast Python linter and code formatter, written in Rust."
@@ -2191,4 +2207,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "6f6f0a3fcdf3eb964843c6116ae3209ee774b8267fbfeeac317fb700b5f3645d"
+content-hash = "1f82151ac5175edf44f49330243e4f65e04e58967af9429eafa630ea419cc020"
