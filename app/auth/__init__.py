@@ -29,6 +29,7 @@ from fastapi_users.authentication import (
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
 from app.core.config import get_settings
+from app.core.email import send_reset_password_email, send_verification_email
 from app.db import get_session
 from app.models.user import User, KYCStatus
 
@@ -63,14 +64,14 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None
     ) -> None:
-        """Handle password reset token generation (dev mode prints to console)."""
-        print(f"[DEV] reset-token for {user.email}: {token}")
+        """Send password reset email with token."""
+        await send_reset_password_email(user.email, token)
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None
     ) -> None:
-        """Handle verification token generation (dev mode prints to console)."""
-        print(f"[DEV] Verification token for {user.email}: {token}")
+        """Send verification email with token."""
+        await send_verification_email(user.email, token)
 
 
 async def get_user_manager(

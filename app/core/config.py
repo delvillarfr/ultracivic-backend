@@ -85,6 +85,32 @@ class Settings(BaseSettings):
         default=LogLevel.INFO,
         description="Logging level for application"
     )
+    
+    # Email Configuration (optional for password reset)
+    smtp_host: str = Field(
+        default="smtp.gmail.com",
+        description="SMTP server hostname"
+    )
+    
+    smtp_port: int = Field(
+        default=587,
+        description="SMTP server port"
+    )
+    
+    smtp_username: str = Field(
+        default="",
+        description="SMTP username (email address)"
+    )
+    
+    smtp_password: SecretStr = Field(
+        default="",
+        description="SMTP password or app password"
+    )
+    
+    smtp_from_email: str = Field(
+        default="noreply@ultracivic.com",
+        description="From email address for system emails"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

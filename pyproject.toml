@@ -22,7 +22,8 @@ dependencies = [
     "psycopg2-binary (>=2.9.10,<3.0.0)",
     "fastapi-users-db-sqlmodel (>=0.3.0,<0.4.0)",
     "fastapi-users-db-sqlalchemy (>=7.0.0,<8.0.0)",
-    "fastapi-cors (>=0.0.6,<0.0.7)"
+    "fastapi-cors (>=0.0.6,<0.0.7)",
+    "aiosmtplib (>=3.0.0,<4.0.0)"
 ]
 
 
