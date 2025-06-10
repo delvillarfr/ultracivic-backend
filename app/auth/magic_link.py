@@ -204,7 +204,7 @@ class MagicLinkService:
     @staticmethod
     def build_magic_link_url(base_url: str, token: str) -> str:
         """Build the complete magic link URL for email delivery."""
-        return f"{base_url}/magic-link/redeem?token={token}"
+        return f"{base_url}/auth.html?token={token}"
 
 
 # Exception classes for better error handling
