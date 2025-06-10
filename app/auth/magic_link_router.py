@@ -54,12 +54,20 @@ async def request_magic_link(
         )
         
         # Build the complete magic link URL
-        # Use the frontend URL based on environment
+        # Intelligently detect frontend URL based on environment and redirect_url
         if settings.environment.value == "production":
             base_url = "https://ultracivic.com"
+        elif magic_link_request.redirect_url and magic_link_request.redirect_url.startswith("http"):
+            # Extract base URL from redirect_url provided by frontend
+            from urllib.parse import urlparse
+            parsed = urlparse(magic_link_request.redirect_url)
+            base_url = f"{parsed.scheme}://{parsed.netloc}"
+        elif magic_link_request.redirect_url and "ultracivic.com" in magic_link_request.redirect_url:
+            # If redirect URL contains ultracivic.com, use production URL
+            base_url = "https://ultracivic.com"
         else:
-            # For development, detect if we're serving frontend locally
-            base_url = "http://localhost:3000"
+            # Default to localhost for development
+            base_url = "http://localhost:8080"
         
         magic_link_url = MagicLinkService.build_magic_link_url(
             base_url, magic_link.token
