@@ -20,7 +20,7 @@ import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import current_active_user, current_verified_user
+from app.auth.dependencies import current_active_user, current_verified_user
 from app.core.config import get_settings
 from app.db import get_session
 from app.models.user import User, KYCStatus

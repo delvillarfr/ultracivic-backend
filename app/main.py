@@ -2,19 +2,20 @@
 Ultra Civic Backend - Main Application Entry Point
 
 This module serves as the central configuration point for the Ultra Civic API.
-It assembles authentication, KYC verification, and health monitoring endpoints
-into a cohesive FastAPI application using the dependency injection pattern.
+It assembles magic-link authentication, KYC verification, and health monitoring 
+endpoints into a cohesive FastAPI application using the dependency injection pattern.
 
 The application follows a modular architecture where authentication is handled
-by FastAPI-Users v14, KYC verification integrates with Stripe Identity, and
-all database operations use async SQLAlchemy with PostgreSQL.
+by magic links with session-based state, KYC verification integrates with 
+Stripe Identity, and all database operations use async SQLAlchemy with PostgreSQL.
 """
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
-from app.auth import fastapi_users, auth_backend, current_active_user, current_verified_user, refresh_jwt_token
-from app.models.user import User, UserRead, UserCreate
+from app.auth.dependencies import current_active_user, current_verified_user
+from app.auth.magic_link_router import router as magic_link_router
+from app.models.user import User
 from app.kyc import router as kyc_router
 
 settings = get_settings()
@@ -42,42 +43,23 @@ def health_check():
     return {"status": "ok"}
 
 
-app.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    prefix="/auth",
-    tags=["auth"],
-)
-
-app.include_router(
-    fastapi_users.get_verify_router(UserRead),
-    prefix="/auth",
-    tags=["auth"],
-)
-
-app.include_router(
-    fastapi_users.get_auth_router(auth_backend),
-    prefix="/auth/jwt",
-    tags=["auth"],
-)
-
-@app.post("/auth/jwt/refresh", tags=["auth"])
-async def refresh_token(token_data: dict = Depends(refresh_jwt_token)):
-    """Refresh JWT access token for authenticated user."""
-    return token_data
-
-app.include_router(
-    fastapi_users.get_reset_password_router(),
-    prefix="/auth",
-    tags=["auth"],
-)
+# Include magic-link authentication routes
+app.include_router(magic_link_router, tags=["auth"])
 
 app.include_router(kyc_router, tags=["kyc"])
 
 
-@app.get("/me", response_model=UserRead, tags=["auth"])
-async def read_me(user: UserRead = Depends(current_active_user)):
+@app.get("/me", tags=["auth"])
+async def read_me(user: User = Depends(current_active_user)):
     """Return the currently authenticated user's profile information."""
-    return user
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "is_verified": user.is_verified,
+        "is_active": user.is_active,
+        "kyc_status": user.kyc_status.value,
+        "stripe_verification_session_id": user.stripe_verification_session_id
+    }
 
 
 @app.get("/auth/test-verified", tags=["auth"])

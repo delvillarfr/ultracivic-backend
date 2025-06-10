@@ -18,7 +18,7 @@ from uuid import UUID
 from fastapi_users import schemas as fus
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from sqlalchemy import Enum
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class KYCStatus(str, enum.Enum):
@@ -51,6 +51,19 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         nullable=True,
         comment="Stripe Identity verification session ID for audit trail",
     )
+    
+    # Relationships (will be populated after all models are defined)
+    if False:  # Type checking only
+        from app.models.magic_link import MagicLink
+        from app.models.session import Session
+        magic_links: Mapped[list[MagicLink]] = relationship(
+            back_populates="user",
+            cascade="all, delete-orphan"
+        )
+        sessions: Mapped[list[Session]] = relationship(
+            back_populates="user", 
+            cascade="all, delete-orphan"
+        )
 
 
 class UserRead(fus.BaseUser[UUID]):
