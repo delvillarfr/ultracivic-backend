@@ -157,7 +157,7 @@ class PaymentService:
                 status=PaymentStatus(stripe_intent.status),
                 capture_method="manual",
                 description=stripe_intent.description,
-                metadata=json.dumps(stripe_intent.metadata)
+                metadata_json=json.dumps(stripe_intent.metadata)
             )
             
             db.add(payment_intent)
