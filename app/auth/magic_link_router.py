@@ -134,16 +134,23 @@ async def redeem_magic_link(
         
         # Set session cookie
         is_production = settings.environment.value == "production"
+        # Also treat as production if request comes from ultracivic.com
+        origin = request.headers.get("origin", "")
+        referer = request.headers.get("referer", "")
+        is_ultracivic_com = "ultracivic.com" in origin or "ultracivic.com" in referer
+        use_secure_cookies = is_production or is_ultracivic_com
+        
         SessionService.set_session_cookie(
             response=response,
             session_token=session.session_token,
-            secure=is_production  # Only secure cookies in production
+            secure=use_secure_cookies
         )
         
         logger.info(
-            "Setting session cookie - production: %s, secure: %s, token: %s",
+            "Setting session cookie - production: %s, ultracivic.com: %s, secure: %s, token: %s",
             is_production,
-            is_production,
+            is_ultracivic_com,
+            use_secure_cookies,
             session.session_token[:8] + "..."
         )
         
@@ -206,7 +213,11 @@ async def logout(
     
     # Clear session cookie
     is_production = settings.environment.value == "production"
-    SessionService.clear_session_cookie(response, secure=is_production)
+    origin = request.headers.get("origin", "")
+    referer = request.headers.get("referer", "")
+    is_ultracivic_com = "ultracivic.com" in origin or "ultracivic.com" in referer
+    use_secure_cookies = is_production or is_ultracivic_com
+    SessionService.clear_session_cookie(response, secure=use_secure_cookies)
     
     return {"message": "Logged out successfully"}
 
