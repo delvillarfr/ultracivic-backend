@@ -21,6 +21,7 @@ from app.core.config import get_settings
 from app.core.email import send_magic_link_email
 from app.db import get_session
 from app.models.magic_link import MagicLinkRequest, MagicLinkResponse
+from app.models.user import User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -248,7 +249,7 @@ async def get_current_session(
             detail="Invalid or expired session"
         )
     
-    user = await db.get(type(session.user), session.user_id)
+    user = await db.get(User, session.user_id)
     if not user:
         raise HTTPException(
             status_code=401,
