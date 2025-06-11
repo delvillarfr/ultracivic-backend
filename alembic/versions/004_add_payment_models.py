@@ -17,32 +17,39 @@ depends_on = None
 
 
 def upgrade():
-    # Create payment status enum (check if exists first)
-    payment_status_enum = postgresql.ENUM(
-        'requires_payment_method',
-        'requires_confirmation', 
-        'requires_action',
-        'processing',
-        'requires_capture',
-        'canceled',
-        'succeeded',
-        name='paymentstatus'
-    )
-    payment_status_enum.create(op.get_bind(), checkfirst=True)
+    # Check if enum types already exist and create only if needed
+    conn = op.get_bind()
     
-    # Create order status enum (check if exists first)
-    order_status_enum = postgresql.ENUM(
-        'draft',
-        'payment_pending',
-        'payment_authorized',
-        'kyc_pending',
-        'processing',
-        'completed',
-        'failed',
-        'canceled',
-        name='orderstatus'
-    )
-    order_status_enum.create(op.get_bind(), checkfirst=True)
+    # Check for paymentstatus enum
+    result = conn.execute(sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'paymentstatus')"))
+    if not result.scalar():
+        payment_status_enum = postgresql.ENUM(
+            'requires_payment_method',
+            'requires_confirmation', 
+            'requires_action',
+            'processing',
+            'requires_capture',
+            'canceled',
+            'succeeded',
+            name='paymentstatus'
+        )
+        payment_status_enum.create(conn)
+    
+    # Check for orderstatus enum
+    result = conn.execute(sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'orderstatus')"))
+    if not result.scalar():
+        order_status_enum = postgresql.ENUM(
+            'draft',
+            'payment_pending',
+            'payment_authorized',
+            'kyc_pending',
+            'processing',
+            'completed',
+            'failed',
+            'canceled',
+            name='orderstatus'
+        )
+        order_status_enum.create(conn)
 
     # Create order table
     op.create_table('order',
