@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    # Create payment status enum
+    # Create payment status enum (check if exists first)
     payment_status_enum = postgresql.ENUM(
         'requires_payment_method',
         'requires_confirmation', 
@@ -28,9 +28,9 @@ def upgrade():
         'succeeded',
         name='paymentstatus'
     )
-    payment_status_enum.create(op.get_bind())
+    payment_status_enum.create(op.get_bind(), checkfirst=True)
     
-    # Create order status enum
+    # Create order status enum (check if exists first)
     order_status_enum = postgresql.ENUM(
         'draft',
         'payment_pending',
@@ -42,7 +42,7 @@ def upgrade():
         'canceled',
         name='orderstatus'
     )
-    order_status_enum.create(op.get_bind())
+    order_status_enum.create(op.get_bind(), checkfirst=True)
 
     # Create order table
     op.create_table('order',
