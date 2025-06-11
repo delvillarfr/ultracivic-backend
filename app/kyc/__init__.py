@@ -35,6 +35,7 @@ stripe.api_key = settings.stripe_secret.get_secret_value()
 
 @router.post("/kyc/start")
 async def start_kyc_verification(
+    request: Request,
     user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_session)
 ) -> Dict[str, str]:
@@ -45,6 +46,21 @@ async def start_kyc_verification(
     identity verification. Sets user status to PENDING during verification.
     """
     try:
+        # Determine return URL based on request origin
+        origin = request.headers.get("origin", "")
+        referer = request.headers.get("referer", "")
+        
+        if "ultracivic.com" in origin:
+            return_url = "https://ultracivic.com/dashboard.html"
+        elif "ultracivic.com" in referer:
+            return_url = "https://ultracivic.com/dashboard.html"
+        elif "localhost" in origin:
+            return_url = "http://localhost:8080/dashboard.html"
+        else:
+            return_url = "https://ultracivic.com/dashboard.html"  # Default to production
+        
+        logger.info("Using return URL: %s for origin: %s", return_url, origin)
+        
         # Create Stripe Identity verification session
         session = stripe.identity.VerificationSession.create(
             type="document",
@@ -53,6 +69,7 @@ async def start_kyc_verification(
                 "user_email": user.email,
                 "user_id": str(user.id),
             },
+            return_url=return_url,
             # Configure for test mode to allow testing
             options={
                 "document": {
