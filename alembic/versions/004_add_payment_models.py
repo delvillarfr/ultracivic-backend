@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    # Check if enum types already exist and create only if needed
+    # Create enum types if they don't exist
     conn = op.get_bind()
     
     # Check for paymentstatus enum
@@ -50,9 +50,13 @@ def upgrade():
             name='orderstatus'
         )
         order_status_enum.create(conn)
+    
+    # Create reference-only enum objects for table definitions
+    payment_status_ref = postgresql.ENUM(name='paymentstatus', create_type=False)
+    order_status_ref = postgresql.ENUM(name='orderstatus', create_type=False)
 
-    # Create order table
-    op.create_table('order',
+    # Create orders table
+    op.create_table('orders',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('tonnes_co2', sa.Integer(), nullable=False),
@@ -61,7 +65,7 @@ def upgrade():
         sa.Column('total_usd', sa.DECIMAL(precision=10, scale=2), nullable=False),
         sa.Column('eth_address', sa.String(length=42), nullable=True),
         sa.Column('tokens_to_mint', sa.DECIMAL(precision=18, scale=6), nullable=True),
-        sa.Column('status', order_status_enum, nullable=False),
+        sa.Column('status', order_status_ref, nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
@@ -77,7 +81,7 @@ def upgrade():
         sa.Column('client_secret', sa.String(length=255), nullable=False),
         sa.Column('amount_cents', sa.Integer(), nullable=False),
         sa.Column('currency', sa.String(length=3), nullable=False),
-        sa.Column('status', payment_status_enum, nullable=False),
+        sa.Column('status', payment_status_ref, nullable=False),
         sa.Column('capture_method', sa.String(length=20), nullable=False),
         sa.Column('captured_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('captured_amount_cents', sa.Integer(), nullable=True),
@@ -85,7 +89,7 @@ def upgrade():
         sa.Column('metadata', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(['order_id'], ['order.id'], ),
+        sa.ForeignKeyConstraint(['order_id'], ['orders.id'], ),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('stripe_payment_intent_id')
     )
@@ -93,7 +97,7 @@ def upgrade():
 
 def downgrade():
     op.drop_table('payment_intent')
-    op.drop_table('order')
+    op.drop_table('orders')
     
     # Drop enums
     op.execute('DROP TYPE orderstatus')

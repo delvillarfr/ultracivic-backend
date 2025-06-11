@@ -49,7 +49,7 @@ class Order(Base):
     and token minting. Tracks the multi-step process and maintains state
     across the progressive KYC workflow.
     """
-    __tablename__ = "order"
+    __tablename__ = "orders"
     
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
@@ -89,7 +89,7 @@ class PaymentIntent(Base):
     __tablename__ = "payment_intent"
     
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    order_id: Mapped[UUID] = mapped_column(ForeignKey("order.id"), nullable=False)
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id"), nullable=False)
     
     # Stripe details
     stripe_payment_intent_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
