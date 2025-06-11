@@ -16,7 +16,7 @@ Features:
 import secrets
 import string
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from fastapi import Request, Response, HTTPException
@@ -129,7 +129,10 @@ class SessionService:
         secure: bool = True
     ) -> None:
         """Set session cookie in the response."""
-        samesite_setting = "none" if secure else "lax"
+        # Explicit literal typing for mypy compatibility
+        samesite_setting: Literal["lax", "strict", "none"] = (
+            "none" if secure else "lax"
+        )
         
         response.set_cookie(
             key=SessionService.SESSION_COOKIE_NAME,

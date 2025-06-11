@@ -14,7 +14,11 @@ import sys
 from enum import Enum
 from functools import lru_cache
 
-from pydantic import Field, SecretStr, field_validator
+try:
+    # Pydantic v2
+    from pydantic import Field, SecretStr, field_validator  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover - fallback for older Pydantic versions
+    from pydantic import Field, SecretStr, validator as field_validator  # type: ignore
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

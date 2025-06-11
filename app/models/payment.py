@@ -113,7 +113,12 @@ class PaymentIntent(Base):
     
     # Metadata
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string
+    metadata_json: Mapped[Optional[str]] = mapped_column(
+        "metadata",
+        Text,
+        nullable=True,
+        comment="JSON string stored as text",
+    )
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
