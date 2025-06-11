@@ -42,7 +42,11 @@ stripe.api_key = settings.stripe_secret.get_secret_value()
 class OrderRequest(BaseModel):
     """Request schema for creating a new order."""
     tonnes_co2: int = Field(gt=0, le=1000, description="Number of CO2 tonnes to retire")
-    eth_address: Optional[str] = Field(None, regex=r"^0x[a-fA-F0-9]{40}$", description="Ethereum address for token delivery")
+    eth_address: Optional[str] = Field(
+        default=None,
+        pattern=r"^0x[a-fA-F0-9]{40}$",
+        description="Ethereum address for token delivery",
+    )
 
 
 class OrderResponse(BaseModel):
