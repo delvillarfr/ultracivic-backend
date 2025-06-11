@@ -1,7 +1,7 @@
 """Add payment and order models
 
 Revision ID: 004_add_payment_models
-Revises: b78842a8be4a
+Revises: 003_add_session_table
 Create Date: 2025-01-06 12:00:00.000000
 
 """

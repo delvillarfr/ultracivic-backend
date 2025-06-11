@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import String, Integer, DECIMAL, DateTime, Text, ForeignKey
+from sqlalchemy import String, Integer, DECIMAL, DateTime, Text, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.user import Base
@@ -65,7 +65,10 @@ class Order(Base):
     tokens_to_mint: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(18, 6), nullable=True)
     
     # Status tracking
-    status: Mapped[OrderStatus] = mapped_column(default=OrderStatus.DRAFT)
+    status: Mapped[OrderStatus] = mapped_column(
+        SAEnum(OrderStatus, name="orderstatus", create_type=False),
+        default=OrderStatus.DRAFT
+    )
     
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -98,7 +101,10 @@ class PaymentIntent(Base):
     # Payment details
     amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="usd")
-    status: Mapped[PaymentStatus] = mapped_column(nullable=False)
+    status: Mapped[PaymentStatus] = mapped_column(
+        SAEnum(PaymentStatus, name="paymentstatus", create_type=False),
+        nullable=False
+    )
     
     # Capture details
     capture_method: Mapped[str] = mapped_column(String(20), default="manual")
