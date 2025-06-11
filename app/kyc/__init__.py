@@ -13,17 +13,20 @@ import json
 import logging
 import hmac
 import hashlib
+from datetime import datetime, timezone
 from typing import Dict, Any
 from uuid import UUID
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import current_active_user, current_verified_user
 from app.core.config import get_settings
 from app.db import get_session
 from app.models.user import User, KYCStatus
+from app.models.payment import Order, PaymentIntent, OrderStatus, PaymentStatus
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -150,6 +153,72 @@ def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> boo
         return False
 
 
+async def capture_user_payments(db: AsyncSession, user: User) -> None:
+    """
+    Capture all authorized payments for a user after KYC verification.
+    
+    Finds all orders with PAYMENT_AUTHORIZED status and captures the
+    associated PaymentIntents, then updates order status to PROCESSING.
+    """
+    try:
+        # Find all orders with authorized payments
+        stmt = select(Order).where(
+            Order.user_id == user.id,
+            Order.status == OrderStatus.PAYMENT_AUTHORIZED
+        )
+        result = await db.execute(stmt)
+        orders = result.scalars().all()
+        
+        for order in orders:
+            # Get associated PaymentIntent
+            stmt = select(PaymentIntent).where(
+                PaymentIntent.order_id == order.id,
+                PaymentIntent.status == PaymentStatus.REQUIRES_CAPTURE
+            )
+            result = await db.execute(stmt)
+            payment_intent = result.scalar_one_or_none()
+            
+            if payment_intent:
+                # Capture the payment
+                try:
+                    stripe_intent = stripe.PaymentIntent.capture(
+                        payment_intent.stripe_payment_intent_id
+                    )
+                    
+                    # Update payment intent status
+                    payment_intent.status = PaymentStatus(stripe_intent.status)
+                    payment_intent.captured_at = datetime.now(timezone.utc)
+                    payment_intent.captured_amount_cents = payment_intent.amount_cents
+                    
+                    # Update order status to processing
+                    order.status = OrderStatus.PROCESSING
+                    
+                    db.add(payment_intent)
+                    db.add(order)
+                    
+                    logger.info(
+                        "Captured payment %s for order %s after KYC verification",
+                        payment_intent.stripe_payment_intent_id,
+                        str(order.id)
+                    )
+                    
+                except stripe.StripeError as e:
+                    logger.error(
+                        "Failed to capture payment %s: %s", 
+                        payment_intent.stripe_payment_intent_id,
+                        str(e)
+                    )
+                    # Mark order as failed
+                    order.status = OrderStatus.FAILED
+                    db.add(order)
+        
+        await db.commit()
+        
+    except Exception as e:
+        logger.error("Error capturing user payments after KYC: %s", str(e))
+        await db.rollback()
+
+
 @router.post("/webhooks/stripe")
 async def handle_stripe_webhook(
     request: Request,
@@ -185,6 +254,10 @@ async def handle_stripe_webhook(
     # Handle verification session events
     if event.type.startswith("identity.verification_session."):
         return await handle_verification_session_event(event, db)
+    
+    # Handle payment intent events
+    if event.type.startswith("payment_intent."):
+        return await handle_payment_intent_event(event, db)
     
     # Return success for unhandled events
     return {"received": True}
@@ -230,6 +303,9 @@ async def handle_verification_session_event(
         user.stripe_verification_session_id = session_id
         status = "verified"
         
+        # Capture any authorized payments for this user
+        await capture_user_payments(db, user)
+        
     elif event.type == "identity.verification_session.requires_input":
         logger.info("Verification requires input for user %s, session %s", user_id, session_id)
         user.kyc_status = KYCStatus.failed
@@ -263,6 +339,88 @@ async def handle_verification_session_event(
         "user_id": str(user_id),
         "kyc_status": status
     }
+
+
+async def handle_payment_intent_event(
+    event: stripe.Event,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """
+    Handle PaymentIntent webhook events to update order status.
+    
+    Updates order status based on payment authorization and capture events.
+    """
+    payment_intent_data = event.data.object
+    payment_intent_id = payment_intent_data.id
+    
+    try:
+        # Find PaymentIntent record
+        stmt = select(PaymentIntent).where(
+            PaymentIntent.stripe_payment_intent_id == payment_intent_id
+        )
+        result = await db.execute(stmt)
+        payment_intent = result.scalar_one_or_none()
+        
+        if not payment_intent:
+            logger.warning("PaymentIntent %s not found in database", payment_intent_id)
+            return {"received": True, "error": "payment_intent_not_found"}
+        
+        # Update payment intent status
+        old_status = payment_intent.status
+        payment_intent.status = PaymentStatus(payment_intent_data.status)
+        
+        # Get associated order
+        order = await db.get(Order, payment_intent.order_id)
+        if not order:
+            logger.warning("Order %s not found for PaymentIntent %s", payment_intent.order_id, payment_intent_id)
+            return {"received": True, "error": "order_not_found"}
+        
+        # Update order status based on payment status
+        if event.type == "payment_intent.requires_capture":
+            # Payment authorized, waiting for capture
+            order.status = OrderStatus.PAYMENT_AUTHORIZED
+            logger.info("Payment authorized for order %s", str(order.id))
+            
+        elif event.type == "payment_intent.succeeded":
+            # Payment captured successfully
+            order.status = OrderStatus.PROCESSING
+            payment_intent.captured_at = datetime.now(timezone.utc)
+            logger.info("Payment captured for order %s", str(order.id))
+            
+        elif event.type == "payment_intent.canceled":
+            # Payment canceled
+            order.status = OrderStatus.CANCELED
+            logger.info("Payment canceled for order %s", str(order.id))
+            
+        elif event.type == "payment_intent.payment_failed":
+            # Payment failed
+            order.status = OrderStatus.FAILED
+            logger.info("Payment failed for order %s", str(order.id))
+        
+        # Save changes
+        db.add(payment_intent)
+        db.add(order)
+        await db.commit()
+        
+        logger.info(
+            "Updated PaymentIntent %s status: %s → %s, Order %s status: %s",
+            payment_intent_id,
+            old_status.value if old_status else "None",
+            payment_intent.status.value,
+            str(order.id),
+            order.status.value
+        )
+        
+        return {
+            "received": True,
+            "payment_intent_id": payment_intent_id,
+            "order_id": str(order.id),
+            "status": payment_intent.status.value
+        }
+        
+    except Exception as e:
+        logger.error("Error handling PaymentIntent event %s: %s", payment_intent_id, str(e))
+        return {"received": True, "error": str(e)}
 
 
 @router.get("/kyc/verified-only")

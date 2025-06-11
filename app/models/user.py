@@ -56,12 +56,17 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     if False:  # Type checking only
         from app.models.magic_link import MagicLink
         from app.models.session import Session
+        from app.models.payment import Order
         magic_links: Mapped[list[MagicLink]] = relationship(
             back_populates="user",
             cascade="all, delete-orphan"
         )
         sessions: Mapped[list[Session]] = relationship(
             back_populates="user", 
+            cascade="all, delete-orphan"
+        )
+        orders: Mapped[list[Order]] = relationship(
+            back_populates="user",
             cascade="all, delete-orphan"
         )
 

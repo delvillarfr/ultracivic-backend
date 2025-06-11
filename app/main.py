@@ -18,6 +18,7 @@ from app.auth.dependencies import current_active_user, current_verified_user
 from app.auth.magic_link_router import router as magic_link_router
 from app.models.user import User
 from app.kyc import router as kyc_router
+from app.payments import router as payments_router
 
 settings = get_settings()
 app = FastAPI(title="Ultra Civic Backend")
@@ -52,6 +53,8 @@ def health_check():
 app.include_router(magic_link_router, tags=["auth"])
 
 app.include_router(kyc_router, tags=["kyc"])
+
+app.include_router(payments_router, tags=["payments"])
 
 
 @app.get("/me", tags=["auth"])
