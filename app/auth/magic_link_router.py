@@ -141,6 +141,13 @@ async def redeem_magic_link(
         )
         
         logger.info(
+            "Setting session cookie - production: %s, secure: %s, token: %s",
+            is_production,
+            is_production,
+            session.session_token[:8] + "..."
+        )
+        
+        logger.info(
             "Magic link redeemed successfully for user %s, session %s",
             str(user.id),
             session.session_token[:8] + "..."

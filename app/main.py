@@ -10,6 +10,7 @@ by magic links with session-based state, KYC verification integrates with
 Stripe Identity, and all database operations use async SQLAlchemy with PostgreSQL.
 """
 
+from datetime import datetime, timezone
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
@@ -40,7 +41,11 @@ app.add_middleware(
 @app.get("/health", tags=["meta"])
 def health_check():
     """Simple health check endpoint returning application status."""
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "environment": settings.environment.value,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
 # Include magic-link authentication routes
