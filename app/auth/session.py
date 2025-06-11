@@ -129,13 +129,26 @@ class SessionService:
         secure: bool = True
     ) -> None:
         """Set session cookie in the response."""
+        samesite_setting = "none" if secure else "lax"
+        
         response.set_cookie(
             key=SessionService.SESSION_COOKIE_NAME,
             value=session_token,
             max_age=SessionService.SESSION_COOKIE_MAX_AGE,
             httponly=True,  # Prevent XSS
             secure=secure,  # HTTPS only in production
-            samesite="none" if secure else "lax"  # Cross-site for production
+            samesite=samesite_setting  # Cross-site for production
+        )
+        
+        # Log cookie details for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(
+            "Set cookie: %s, secure: %s, samesite: %s, max_age: %s",
+            SessionService.SESSION_COOKIE_NAME,
+            secure,
+            samesite_setting,
+            SessionService.SESSION_COOKIE_MAX_AGE
         )
     
     @staticmethod
