@@ -198,7 +198,8 @@ async def logout(
         logger.info("Session %s revoked during logout", session_token[:8] + "...")
     
     # Clear session cookie
-    SessionService.clear_session_cookie(response)
+    is_production = settings.environment.value == "production"
+    SessionService.clear_session_cookie(response, secure=is_production)
     
     return {"message": "Logged out successfully"}
 

@@ -135,7 +135,7 @@ class SessionService:
             max_age=SessionService.SESSION_COOKIE_MAX_AGE,
             httponly=True,  # Prevent XSS
             secure=secure,  # HTTPS only in production
-            samesite="lax"  # CSRF protection
+            samesite="none" if secure else "lax"  # Cross-site for production
         )
     
     @staticmethod
@@ -144,13 +144,13 @@ class SessionService:
         return request.cookies.get(SessionService.SESSION_COOKIE_NAME)
     
     @staticmethod
-    def clear_session_cookie(response: Response) -> None:
+    def clear_session_cookie(response: Response, secure: bool = True) -> None:
         """Clear session cookie from the response."""
         response.delete_cookie(
             key=SessionService.SESSION_COOKIE_NAME,
             httponly=True,
-            secure=True,
-            samesite="lax"
+            secure=secure,
+            samesite="none" if secure else "lax"
         )
     
     @staticmethod
